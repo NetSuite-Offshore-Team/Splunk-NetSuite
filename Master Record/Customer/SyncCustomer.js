@@ -27,6 +27,10 @@ function SyncCustomer(type){
         //Vab Change GitHub
 //New Change New Day
         //Vab Change Eclipse
+        /*---------Start Change 9/3/2015-------*/
+        var pqr = 123;
+        /*---------End Change 9/3/2015-------*/
+        
         /*------New Change 8/19-------*/
         
        var test = 1234
