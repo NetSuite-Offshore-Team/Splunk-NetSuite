@@ -74,7 +74,12 @@ function itemsync(type){
             }
             string1 = string1 + ',"cloudSubscription" : ' + cloudSubscription;
             
-                                                                                                            
+            /*----Start---*/
+            var test = 123;
+            /*---End---*/
+             
+    
+            
             var isLicense = r.getFieldValue('custitem_is_license');
             if (isLicense == 'T')
             {
