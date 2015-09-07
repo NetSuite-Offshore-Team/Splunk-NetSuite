@@ -78,7 +78,7 @@ function itemsync(type){
             var test = 123;
             /*---End---*/
              
-    
+            var pqr = 123;
             
             var isLicense = r.getFieldValue('custitem_is_license');
             if (isLicense == 'T')
