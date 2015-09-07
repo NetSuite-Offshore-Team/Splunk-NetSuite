@@ -75,7 +75,7 @@ function itemsync(type){
             string1 = string1 + ',"cloudSubscription" : ' + cloudSubscription;
             
             /*----Start---*/
-            var jgkjg = 123;
+            var test = 123;
             /*---End---*/
              
     
