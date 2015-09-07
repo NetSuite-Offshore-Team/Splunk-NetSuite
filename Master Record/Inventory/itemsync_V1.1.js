@@ -77,6 +77,8 @@ function itemsync(type){
             /*----Start---*/
             var test = 123;
             /*---End---*/
+            
+            var xyz = 123;
              
     
             
