@@ -25,6 +25,16 @@
 * @Project # DFCT0050493
 * @version 1.2
 */
+//Modified the code to run the script from Release Manager Role. 
+/**
+* Getting rid of the method getperiodofSubsidiary 
+* @author Vaibhav Srivastava
+* @Release Date: 12th Sep 2015
+* @Release Number : ENHC0052043
+* @Project 
+* @version 1.3
+*/
+
 var finalApprover = nlapiGetContext().getSetting('SCRIPT', 'custscript_spk_finalapprover');
 var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 function approveBill(request,response)
@@ -88,18 +98,14 @@ function approveBill(request,response)
 						}
 						else
 						{
-							var period = currentRec.getFieldText('postingperiod');	// Getting the posting period
-							var cdate1 = new Date();
-							var year = cdate1.getFullYear();						
-							getperiodofSubsidiary(currentRec,year,period,custVBId);
-							
-							// After Final Approval the approval status is set to "Approved" and Next Approver as "Fully Approved". 
 							currentRec.setFieldValue('approvalstatus','2');
 							currentRec.setFieldValue('custbody_spk_inv_apvr',finalApprover);
+
 							if(custVBId)
 							{
 								var customVbId = nlapiSubmitField('customrecord_spk_vendorbill',custVBId,['custrecord_spk_vb_approver','custrecord_spk_vb_approvalstatus'],[finalApprover,'2']);
-								nlapiLogExecution('DEBUG', 'customVbId is', customVbId);
+								var custId = nlapiSubmitField('customrecord_spk_vendorbill',custVBId,'custrecord_spk_vb_postingperiod',currentRec.getFieldValue('postingperiod'));
+								nlapiLogExecution('DEBUG', 'customVbId is', custVBId);
 							}
 						}	
 						flag = 1;					
@@ -174,61 +180,7 @@ function approveBill(request,response)
     }
 }
 //AP Approval Phase 2 : End
-/****** Function called to verify if the bill can be posted in any posting period ******/
-function getperiodofSubsidiary(rec,year,period,custVBId)
-{
-	/**** Creating search for finding the open posting period ****/
-	var istrue = 0;
-	var subsidiary = rec.getFieldValue('subsidiary');
-	nlapiLogExecution('DEBUG', 'year '+year, ' period '+ period+' subsidiary '+subsidiary);
-	var filter = new Array();
-	var column = new Array();
-	filter[0] = new nlobjSearchFilter('subsidiary',null,'anyof',subsidiary);
-	filter[1] = new nlobjSearchFilter('periodname','accountingperiod','is',period);
-	filter[2] = new nlobjSearchFilter('aplocked',null,'is','F');
-	column[0] = new nlobjSearchColumn('internalid');
-	var result = nlapiSearchRecord(null,'customsearch_spk_periodsubsidiarysearc',filter, column);
-	if(result) {
-		for(var x=0; x<result.length;x++) {
-			var intid = result[x];
-			var id = intid.getValue('internalid');
-			nlapiLogExecution('DEBUG', 'AccountPeriod id '+id,'result '+result.length);
-			
-			var filter1 = new Array();
-			var column1 = new Array();
-			
-			filter1[0] = new nlobjSearchFilter('internalid',null,'anyof',id);
-			column1[0] = new nlobjSearchColumn('internalid');
-			var Accresult = nlapiSearchRecord('accountingperiod',null,filter1, column1);
-			if(Accresult) {
-				var accid = Accresult[0].getValue('internalid');
-				nlapiLogExecution('DEBUG', 'accid '+accid,' Accresult '+Accresult.length);
-				if(custVBId) {
-					nlapiSubmitField('customrecord_spk_vendorbill',custVBId,'custrecord_spk_vb_postingperiod',accid);
-				}
-				rec.setFieldValue('postingperiod',accid); 	// Setting of the posting period in bill record.
-				istrue = 1;
-			}
-		}
-	}
-	if(istrue == 0) {				
-		var txtPeriod = period.split(' ');					
-		var monthIndex = monthNames.indexOf(txtPeriod[0]);	
-		//Added line of code logic for year captured from Posting period name due to the issue with Vendor Bill Posting for 2016 (INC0090657) ie was due to current system year	: Begin	
-        year = parseInt(txtPeriod[1]);
-		//END
-		monthIndex = monthIndex + 1;	
-		nlapiLogExecution('DEBUG', 'monthIndex', monthIndex +'monthNames[monthIndex]'+ monthNames[monthIndex]+' year  '+year); 
-		if(monthIndex == 12)
-		{
-			monthIndex = 0;
-			year = parseInt(year+1);
-		}
-		var periodname = monthNames[monthIndex] +' '+ year;
-		nlapiLogExecution('DEBUG', 'periodname', periodname); 
-		getperiodofSubsidiary(rec,year,periodname,custVBId);		
-	}	
-}
+
 
 // Function to check if any delegate approver is assigned to an employee record.
 function getDelegateApprover(approverId)
