@@ -24,6 +24,16 @@
 * @Project # DFCT0050493
 * @version 1.2
 */
+//Modified the code to run the script for Release Manager Role
+/**
+* Getting rid of the method getperiodofSubsidiary 
+* @author Vaibhav Srivastava
+* @Release Date: 12th Sep 2015
+* @Release Number : ENHC0052043
+* @Project 
+* @version 1.3
+*/
+
 var reqUrl = nlapiGetContext().getSetting('SCRIPT', 'custscript_requrl');
 var amount_BOD = nlapiGetContext().getSetting('SCRIPT', 'custscript_amount_bod_approval');
 var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -127,30 +137,15 @@ function onApproveVB(request, response)
 									var userRole = context.getRole(); // Getting the user current role
 									var currentUser = context.getUser(); // User id
 									
-									// Creating dynamic search to look for employee with Override Period Restrictions permission
-									nlapiLogExecution('DEBUG', 'userRole '+userRole, 'currentUser '+currentUser); 
-									var filter = new Array();
-									var column = new Array();
-									filter[0] = new nlobjSearchFilter('permission','role','anyof','ADMI_PERIODOVERRIDE'); // ADMI_PERIODOVERRIDE = Override Period Restrictions
-									filter[1] = new nlobjSearchFilter('role',null,'anyof',userRole);
-									filter[2] = new nlobjSearchFilter('internalid',null,'anyof',currentUser);
-									filter[3] = new nlobjSearchFilter('level',null,'anyof',4);		
-									column[0] = new nlobjSearchColumn('level');
-									var result = nlapiSearchRecord('employee',null,filter,column);
-									if(!result)
-									{
-										nlapiLogExecution('DEBUG', 'result not exist', 'null'); 
-										// Function used for mapping Posting Period on Purchase Requestor Vendor Bill
-										getperiodofSubsidiary(currentRec,year,period,custVbId);
-									}
-									else
-									{
+									nlapiLogExecution('DEBUG', 'userRole '+userRole, 'currentUser '+currentUser);
+
+								
 										if(custVbId)
-										{
+										{	
+
 											var custId = nlapiSubmitField('customrecord_spk_vendorbill',custVbId,'custrecord_spk_vb_postingperiod',currentRec.getFieldValue('postingperiod'));
 										}
-										nlapiLogExecution('DEBUG', 'result'+result.length,'custId is'+custId);
-									}
+
 									if(flag == false)
 									{
 										// After Final Approval the approval status is set to "Approved" and "Fully Approved" as Next Approver. 
@@ -325,7 +320,7 @@ function verifyBOD(amount,vbId,crid,apprvlDate,count)
 	var fielddate = form.addField('custpage_apprvdate', 'text', 'Date').setDisplayType('hidden').setDefaultValue(apprvlDate);
 	var customRecId = form.addField('custpage_crid', 'text', 'CR Id').setDisplayType('hidden').setDefaultValue(crid);
 	var vbAmount = parseFloat(amount);
-	field.setDisplayType('inline').setDefaultValue('Vendor Bill amount '+ vbAmount +' requires Board of Director approval. Once approval received, please mark it complete by selecting the â€˜Board of Director Approvalâ€™ check box & then approve the bill.');									
+	field.setDisplayType('inline').setDefaultValue('Vendor Bill amount '+ vbAmount +' requires Board of Director approval. Once approval received, please mark it complete by selecting the ‘Board of Director Approval’ check box & then approve the bill.');									
 	var billId = form.addField('custpage_billid','text','Vendor Bill Id').setDisplayType('hidden').setDefaultValue(vbId);
 	var count_i = form.addField('custpage_count','text','Count').setDisplayType('hidden').setDefaultValue(count);	
 	form.setScript('customscript_spk_cancel_and_poid');
@@ -354,7 +349,7 @@ function updateAdminFields(vbId,crid,apprvlDate,i,count)
 	if((i == count) && vbAmount > amount_BOD && !poId && bodApp == 'F')
 	{
 		var field = form.addField('custpage_bodaprvl', 'textarea', 'Error:');
-		field.setDisplayType('inline').setDefaultValue('Vendor Bill amount '+ vbAmount +' requires Board of Director approval. Once approval received, please mark it complete by selecting the â€˜Board of Director Approvalâ€™ check box & then approve the bill.');									
+		field.setDisplayType('inline').setDefaultValue('Vendor Bill amount '+ vbAmount +' requires Board of Director approval. Once approval received, please mark it complete by selecting the ‘Board of Director Approval’ check box & then approve the bill.');									
 	}
 	var customRecId = form.addField('custpage_crid', 'text', 'CR Id').setDisplayType('hidden').setDefaultValue(crid);
 	form.addSubmitButton('OK');	
@@ -362,61 +357,6 @@ function updateAdminFields(vbId,crid,apprvlDate,i,count)
 	response.writePage(form);
 }
 
-// Function used for mapping Posting Period on Purchase Requestor Vendor Bill
-function getperiodofSubsidiary(rec,year,period,custVBId)
-{
-	/**** Creating search for finding the open posting period ****/
-	var istrue = 0;
-	var subsidiary = rec.getFieldValue('subsidiary');
-	nlapiLogExecution('DEBUG', 'year '+year, ' period '+ period+' subsidiary '+subsidiary);
-	var filter = new Array();
-	var column = new Array();
-	filter[0] = new nlobjSearchFilter('subsidiary',null,'anyof',subsidiary);
-	filter[1] = new nlobjSearchFilter('periodname','accountingperiod','is',period);
-	filter[2] = new nlobjSearchFilter('aplocked',null,'is','F');
-	column[0] = new nlobjSearchColumn('internalid');
-	var result = nlapiSearchRecord(null,'customsearch_spk_periodsubsidiarysearc',filter, column);
-	if(result) {
-		for(var x=0; x<result.length;x++) {
-			var intid = result[x];
-			var id = intid.getValue('internalid');
-			nlapiLogExecution('DEBUG', 'AccountPeriod id '+id,'result '+result.length);
-			
-			var filter1 = new Array();
-			var column1 = new Array();
-			
-			filter1[0] = new nlobjSearchFilter('internalid',null,'anyof',id);
-			column1[0] = new nlobjSearchColumn('internalid');
-			var Accresult = nlapiSearchRecord('accountingperiod',null,filter1, column1);
-			if(Accresult) {
-				var accid = Accresult[0].getValue('internalid');
-				nlapiLogExecution('DEBUG', 'accid '+accid,' Accresult '+Accresult.length);
-				if(custVBId) {
-					nlapiSubmitField('customrecord_spk_vendorbill',custVBId,'custrecord_spk_vb_postingperiod',accid);
-				}
-				rec.setFieldValue('postingperiod',accid); 	// Setting of the posting period in bill record.
-				istrue = 1;
-			}
-		}
-	}
-	if(istrue == 0) {				
-		var txtPeriod = period.split(' ');					
-		var monthIndex = monthNames.indexOf(txtPeriod[0]);	
-		//Added line of code logic for year captured from Posting period name due to the issue with Vendor Bill Posting for 2016 (INC0090657) ie was due to current system year	: Begin	
-        year = parseInt(txtPeriod[1]);
-		//END
-		monthIndex = monthIndex + 1;	
-		nlapiLogExecution('DEBUG', 'monthIndex', monthIndex +'monthNames[monthIndex]'+ monthNames[monthIndex]+' year  '+year); 
-		if(monthIndex == 12)
-		{
-			monthIndex = 0;
-			year = parseInt(year+1);
-		}
-		var periodname = monthNames[monthIndex] +' '+ year;
-		nlapiLogExecution('DEBUG', 'periodname', periodname); 
-		getperiodofSubsidiary(rec,year,periodname,custVBId);		
-	}	
-}
 // function to Validate Bill to assign Owner and then to re-initiating Approval on bill
 function assignOwner(recId,owner)
 {	
