@@ -80,7 +80,7 @@ function itemsync(type){
             
             var xyz = 123;
              
-    
+            var pqr = 123;
             
             var isLicense = r.getFieldValue('custitem_is_license');
             if (isLicense == 'T')
