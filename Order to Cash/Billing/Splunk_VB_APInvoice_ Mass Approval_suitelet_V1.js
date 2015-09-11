@@ -32,6 +32,16 @@
  * @Project ENHC0051452
  * @version 1.3
  */
+//Modifying the code logic as a part of fix due to deprecation of "Period Subsidiary" Saved Search. Function "getPeriodofSubsidiary" is no longer used in script. The script will be executed from Release Manager Role now
+ /**
+ * Changed logic to maintain the existing functionality due to deprecated search "Splunk Period Subsidiary Search"
+ * @author Vaibhav Srivastava
+ * @Release Date: 11th Sep 2015
+ * @Release Number : RLSE0050432
+ * @Project ENHC0052043
+ * @version 1.4
+ */ 
+ 
 var monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 var reqUrl = nlapiGetContext().getSetting('SCRIPT', 'custscript_requrl');
 var finalApprover = nlapiGetContext().getSetting('SCRIPT', 'custscript_spk_finalapprover');
@@ -648,7 +658,6 @@ function SuiteList(request,response)
 					if(currentUser == invapr)
 					{
 						var period = currentRec.getFieldText('postingperiod');   // Getting the posting period
-						var periodintid = currentRec.getFieldValue('postingperiod');
 						var cdate1 = new Date();
 						var year = cdate1.getFullYear();
 						var tranid = currentRec.getFieldValue('tranid');
@@ -662,12 +671,13 @@ function SuiteList(request,response)
 
 						var owner = currentRec.getFieldValue('custbody_spk_inv_owner');
 						var custVbId = currentRec.getFieldValue('custbody_spk_vd_id');
-
+						nlapiLogExecution('DEBUG','CustVBId',custVbId);
 						var lineCount = 0;
 						var approvalDate = new Date();
 						var apprvlDate = nlapiDateToString(approvalDate, 'datetimetz');
 						// Getting the count of line items of the vendor bill
 						var countr = currentRec.getLineItemCount('recmachcustrecord_spk_apvmtx_tranno');
+						nlapiLogExecution('DEBUG','COUNTR',countr);
 
 						if(countr >0)
 
@@ -686,7 +696,6 @@ function SuiteList(request,response)
 									lineCount = ri;
 									if(ri<countr)
 									{
-
 										// Setting the Approval Date and Approval Status
 										currentRec.setLineItemValue('recmachcustrecord_spk_apvmtx_tranno','custrecord_spk_apvmtx_reqdt',ri+1,apprvlDate);
 										currentRec.setLineItemValue('recmachcustrecord_spk_apvmtx_tranno','custrecord_spk_apvmtx_apvstatus',ri+1,'4');
@@ -720,35 +729,12 @@ function SuiteList(request,response)
 											if(custVbId)
 											{
 												var customVbId = nlapiSubmitField('customrecord_spk_vendorbill',custVbId,['custrecord_spk_vb_approver','custrecord_spk_vb_approvalstatus'],[nextApprover,'2']);
+												var custId = nlapiSubmitField('customrecord_spk_vendorbill',custVbId,'custrecord_spk_vb_postingperiod',currentRec.getFieldValue('postingperiod'));
 
 											}
-											// Triggering workflow for sending the mails.
-											//Start HERE
-											/*********** Below search filter used to check user has Override Period Restrictions or not ************/                                                                                                                
-											// Creating dynamic search to look for employee with Override Period Restrictions permission
-											var filter = new Array();
-											filter[0] = new nlobjSearchFilter('permission','role','anyof','ADMI_PERIODOVERRIDE'); // ADMI_PERIODOVERRIDE = Override Period Restrictions
-											filter[1] = new nlobjSearchFilter('role',null,'anyof',userRole);
-											filter[2] = new nlobjSearchFilter('internalid',null,'anyof',currentUser);
-											filter[3] = new nlobjSearchFilter('level',null,'anyof',4);                   
-											var result = nlapiSearchRecord('employee',null,filter);                                                                                                                   
-											if(!result)
-											{
-												nlapiLogExecution('DEBUG', 'result not exist', 'null');
-												getperiodofSubsidiary(currentRec,year,period,custVbId,periodintid); // calling function
-											}
-											else
-											{
-												if(custVbId)
-												{
-													var custId = nlapiSubmitField('customrecord_spk_vendorbill',custVbId,'custrecord_spk_vb_postingperiod',currentRec.getFieldValue('postingperiod'));
-												}
-												nlapiLogExecution('DEBUG', 'result'+result.length,'custId is'+custId);
-											}
-											//End HERE GL
+
 											var vbRecId = nlapiSubmitRecord(currentRec,true,true); // Submitting the record after updating the fields.
 											var custRecordId = currentRec.getLineItemValue('recmachcustrecord_spk_apvmtx_tranno','id',ri);
-
 											nlapiInitiateWorkflow('customrecord_spk_inv_apvmtx', custRecordId, 'customworkflow_spk_ap_inv_apv_ntfcn');
 										}
 										else
@@ -930,69 +916,9 @@ function getperiod(rec,year,period,custVbId)
 		//var periodinternalid = parseInt(perintid) + parseInt(1);
 		nlapiLogExecution('DEBUG', 'periodname', periodname);
 		//nlapiLogExecution('DEBUG', 'periodinternalid', periodinternalid);
-		getperiod(rec,year,periodname,custVbId,periodinternalid);                        
+		getperiod(rec,year,periodname,custVbId);                        
 	}             
 }
-/*This function gets the appropriate posting period depending on the role of the user*/
-function getperiodofSubsidiary(rec,year,period,custVBId,perintid)
-{
-	/**** Creating search for finding the open posting period ****/
-	var istrue = 0;
-	var subsidiary = rec.getFieldValue('subsidiary');
-	nlapiLogExecution('DEBUG', 'year '+year, ' period '+ period+' subsidiary '+subsidiary+' PeriodIntid '+perintid);
-	var filter = new Array();
-	var column = new Array();
-	filter[0] = new nlobjSearchFilter('subsidiary',null,'anyof',subsidiary);
-	//filter[1] = new nlobjSearchFilter('periodname','accountingperiod','is',period);
-	filter[1] = new nlobjSearchFilter('internalid',null,'is',perintid);
-	filter[2] = new nlobjSearchFilter('inprogress',null,'is','F');
-	column[0] = new nlobjSearchColumn('internalid');
-	var result = nlapiSearchRecord(null,'customsearch_spk_periodsubsidiarysearc_3',filter, column);
-	if(result) {
-		for(var x=0; x<result.length;x++) {
-			var intid = result[x];
-			var id = intid.getValue('internalid');
-			nlapiLogExecution('DEBUG', 'AccountPeriod id '+id,'result '+result.length);
-
-			var filter1 = new Array();
-			var column1 = new Array();
-
-			filter1[0] = new nlobjSearchFilter('internalid',null,'anyof',id);
-			column1[0] = new nlobjSearchColumn('internalid');
-			var Accresult = nlapiSearchRecord('accountingperiod',null,filter1, column1);
-			if(Accresult) {
-				var accid = Accresult[0].getValue('internalid');
-				nlapiLogExecution('DEBUG', 'accid '+accid,' Accresult '+Accresult.length);
-				if(custVBId) {
-					nlapiSubmitField('customrecord_spk_vendorbill',custVBId,'custrecord_spk_vb_postingperiod',accid);
-				}
-				rec.setFieldValue('postingperiod',accid); 	// Setting of the posting period in bill record.
-				istrue = 1;
-			}
-		}
-	}
-	if(istrue == 0) {			
-		
-		var txtPeriod = period.split(' ');					
-		var monthIndex = monthNames.indexOf(txtPeriod[0]);	
-//		Added line of code logic for year captured from Posting period name due to the issue with Vendor Bill Posting for 2016 (INC0090657) ie was due to current system year	: Begin	
-		year = parseInt(txtPeriod[1]);
-		//END		
-		monthIndex = monthIndex + 1;
-		nlapiLogExecution('DEBUG', 'monthIndex', monthIndex +'monthNames[monthIndex]'+ monthNames[monthIndex]+' year  '+year); 
-		if(monthIndex == 12)
-		{
-			monthIndex = 0;
-			year = parseInt(year+1);
-		}
-		var periodname = monthNames[monthIndex] +' '+ year;
-		var periodinternalid = parseInt(perintid) + parseInt(1);
-		nlapiLogExecution('DEBUG', 'periodname', periodname); 
-		nlapiLogExecution('DEBUG', 'periodinternalid', periodinternalid);
-		getperiodofSubsidiary(rec,year,periodname,custVBId,periodinternalid);		
-	}	
-}
-
 
 function sortFunction(a, b) {
 	if (a[2] === b[2]) {
