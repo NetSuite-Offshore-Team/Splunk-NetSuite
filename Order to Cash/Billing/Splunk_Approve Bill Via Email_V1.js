@@ -25,13 +25,13 @@
 * @Project # DFCT0050493
 * @version 1.2
 */
-//Modifying the code logic as a part of fix due to deprecation of "Period Subsidiary" Saved Search. Function "getPeriodofSubsidiary" is no longer used in script. The script will be executed from Release Manager Role now 
+//Modified the code to run the script from Release Manager Role. 
 /**
 * Getting rid of the method getperiodofSubsidiary 
 * @author Vaibhav Srivastava
-* @Release Date: 11th Sep 2015
-* @Release Number : RLSE0050432
-* @Project ENHC0052043
+* @Release Date: 12th Sep 2015
+* @Release Number : ENHC0052043
+* @Project 
 * @version 1.3
 */
 
